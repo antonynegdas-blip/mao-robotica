@@ -202,7 +202,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--alert-image",
         type=Path,
-        default=Path(__file__).parent / "assets" / "alerta.jpg",
+        default=Path(__file__).parent / "imagens" / "alerta.jpg",
         help="Imagem exibida quando o gesto bloqueado é detectado.",
     )
     return parser.parse_args()

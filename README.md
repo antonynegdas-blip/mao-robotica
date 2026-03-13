@@ -153,7 +153,7 @@ Quando o programa identifica o dedo médio e o polegar levantados com os outros
 dedos recolhidos, ele considera o gesto bloqueado. Nesse caso:
 
 1. os cinco servos recebem a posição fechada, em vez de copiar o gesto;
-2. a câmera mostra a imagem `assets/alerta.jpg` e a mensagem
+2. a câmera mostra a imagem `imagens/alerta.jpg` e a mensagem
    **GESTO BLOQUEADO**;
 3. quando o gesto deixa de ser detectado, o controle normal volta
    automaticamente.
@@ -198,7 +198,7 @@ podem não ter wheel ou suporte oficial para Python 3.14.
   e conexão pyFirmata;
 - `testar-dedos.py`: testa os cinco servos individualmente;
 - `requirements.txt`: lista as dependências Python.
-- `assets/alerta.jpg`: imagem exibida quando o gesto é bloqueado.
+- `imagens/alerta.jpg`: imagem exibida quando o gesto é bloqueado.
 
 ## Referências oficiais
 
