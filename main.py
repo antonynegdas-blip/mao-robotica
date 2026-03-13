@@ -74,11 +74,13 @@ def is_obscene_gesture(openings: Mapping[str, float]) -> bool:
     """Detecta dedo médio levantado com os outros dedos recolhidos.
 
     Os limiares deixam uma margem para pequenas oscilações da câmera. O gesto
-    só é bloqueado quando o médio está claramente mais aberto que os demais.
+    só é bloqueado quando o médio e o polegar estão claramente levantados e os
+    demais dedos estão recolhidos.
     """
 
     return (
         openings.get("medio", 0.0) >= 0.72
+        and openings.get("polegar", 0.0) >= 0.60
         and openings.get("indicador", 0.0) <= 0.45
         and openings.get("anelar", 0.0) <= 0.45
         and openings.get("minimo", 0.0) <= 0.45
