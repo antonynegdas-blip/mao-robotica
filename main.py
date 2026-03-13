@@ -23,6 +23,7 @@ from __future__ import annotations
 import argparse
 import math
 import sys
+from pathlib import Path
 from typing import Any, Mapping
 
 from servo_braco3d import FINGER_NAMES, RobotHand, format_openings
@@ -69,6 +70,21 @@ def calculate_openings(landmarks: Any) -> dict[str, float]:
     }
 
 
+def is_obscene_gesture(openings: Mapping[str, float]) -> bool:
+    """Detecta dedo médio levantado com os outros dedos recolhidos.
+
+    Os limiares deixam uma margem para pequenas oscilações da câmera. O gesto
+    só é bloqueado quando o médio está claramente mais aberto que os demais.
+    """
+
+    return (
+        openings.get("medio", 0.0) >= 0.72
+        and openings.get("indicador", 0.0) <= 0.45
+        and openings.get("anelar", 0.0) <= 0.45
+        and openings.get("minimo", 0.0) <= 0.45
+    )
+
+
 def _require_dependencies() -> tuple[Any, Any]:
     if _IMPORT_ERROR is not None:
         raise RuntimeError(
@@ -78,10 +94,44 @@ def _require_dependencies() -> tuple[Any, Any]:
     return cv2, mp
 
 
-def run(camera_index: int, robot: RobotHand | None, mirror: bool = True) -> None:
+def _load_alert_image(cv2_module: Any, image_path: Path) -> Any:
+    alert = cv2_module.imread(str(image_path))
+    if alert is None:
+        raise RuntimeError(f"Não foi possível abrir a imagem de alerta: {image_path}")
+    return alert
+
+
+def _draw_alert(frame: Any, cv2_module: Any, alert_image: Any) -> None:
+    height, width = frame.shape[:2]
+    alert_width = min(280, width // 3)
+    ratio = alert_width / alert_image.shape[1]
+    alert = cv2_module.resize(
+        alert_image, (alert_width, max(1, round(alert_image.shape[0] * ratio)))
+    )
+    frame[10 : 10 + alert.shape[0], width - alert.shape[1] - 10 : width - 10] = alert
+    cv2_module.putText(
+        frame,
+        "GESTO BLOQUEADO",
+        (10, height - 25),
+        cv2_module.FONT_HERSHEY_SIMPLEX,
+        0.8,
+        (0, 0, 255),
+        2,
+    )
+
+
+def run(
+    camera_index: int,
+    robot: RobotHand | None,
+    mirror: bool = True,
+    alert_image_path: Path | None = None,
+) -> None:
     """Executa captura até Q/Esc; Ctrl+C também encerra sem esconder erros."""
 
     cv2_module, mp_module = _require_dependencies()
+    alert_image = None
+    if alert_image_path is not None:
+        alert_image = _load_alert_image(cv2_module, alert_image_path)
     capture = cv2_module.VideoCapture(camera_index)
     if not capture.isOpened():
         raise RuntimeError(
@@ -105,17 +155,29 @@ def run(camera_index: int, robot: RobotHand | None, mirror: bool = True) -> None
                 result = hands.process(cv2_module.cvtColor(frame, cv2_module.COLOR_BGR2RGB))
                 if result.multi_hand_landmarks:
                     openings = calculate_openings(result.multi_hand_landmarks[0].landmark)
-                    if robot is not None:
+                    blocked = is_obscene_gesture(openings)
+                    if blocked and robot is not None:
+                        robot.set_openings({name: 0.0 for name in FINGER_NAMES})
+                    elif robot is not None:
                         robot.set_openings(openings)
-                    cv2_module.putText(
-                        frame,
-                        format_openings(openings),
-                        (10, 30),
-                        cv2_module.FONT_HERSHEY_SIMPLEX,
-                        0.7,
-                        (0, 255, 0),
-                        2,
-                    )
+                    if blocked:
+                        if alert_image is not None:
+                            _draw_alert(frame, cv2_module, alert_image)
+                        else:
+                            cv2_module.putText(
+                                frame, "GESTO BLOQUEADO", (10, 30),
+                                cv2_module.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2
+                            )
+                    else:
+                        cv2_module.putText(
+                            frame,
+                            format_openings(openings),
+                            (10, 30),
+                            cv2_module.FONT_HERSHEY_SIMPLEX,
+                            0.7,
+                            (0, 255, 0),
+                            2,
+                        )
                 else:
                     cv2_module.putText(
                         frame, "Nenhuma mao detectada", (10, 30),
@@ -135,6 +197,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--camera", type=int, default=0, help="Índice da câmera (padrão: 0).")
     parser.add_argument("--no-arduino", action="store_true", help="Mostra a detecção sem enviar servos.")
     parser.add_argument("--no-mirror", action="store_true", help="Não espelha a imagem.")
+    parser.add_argument(
+        "--alert-image",
+        type=Path,
+        default=Path(__file__).parent / "assets" / "alerta.jpg",
+        help="Imagem exibida quando o gesto bloqueado é detectado.",
+    )
     return parser.parse_args()
 
 
@@ -149,7 +217,12 @@ def main() -> int:
                 )
             robot = RobotHand(args.port)
             robot.connect()
-        run(args.camera, robot, mirror=not args.no_mirror)
+        run(
+            args.camera,
+            robot,
+            mirror=not args.no_mirror,
+            alert_image_path=args.alert_image,
+        )
     except KeyboardInterrupt:
         return 0
     finally:

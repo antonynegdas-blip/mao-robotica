@@ -147,7 +147,23 @@ O programa calcula a abertura aproximada de cada dedo e envia um ângulo
 independente para cada servo. Para encerrar, pressione `Q` ou `Esc`; o programa
 fecha os dedos e encerra a conexão.
 
-## 7. Solução de problemas
+## 7. Bloqueio do gesto ofensivo
+
+Quando o programa identifica o dedo médio levantado com os outros dedos
+recolhidos, ele considera o gesto bloqueado. Nesse caso:
+
+1. os cinco servos recebem a posição fechada, em vez de copiar o gesto;
+2. a câmera mostra a imagem `assets/alerta.jpg` e a mensagem
+   **GESTO BLOQUEADO**;
+3. quando o gesto deixa de ser detectado, o controle normal volta
+   automaticamente.
+
+O detector usa a abertura estimada dos dedos e possui uma margem para evitar
+falsos positivos. Ele não é um classificador perfeito: iluminação, posição da
+mão e oclusões podem afetar a detecção. A imagem pode ser trocada usando
+`--alert-image caminho/para/imagem.jpg`.
+
+## 8. Solução de problemas
 
 **“pyFirmata não está instalado”**
 
@@ -175,13 +191,14 @@ sem observar a mecânica.
 Crie o ambiente com Python 3.12 e repita a instalação. MediaPipe e pyFirmata
 podem não ter wheel ou suporte oficial para Python 3.14.
 
-## 8. Arquivos do projeto
+## 9. Arquivos do projeto
 
 - `main.py`: captura a câmera, usa MediaPipe Hands e envia as aberturas;
 - `servo_braco3d.py`: define pinos, limites, conversão de abertura para ângulo
   e conexão pyFirmata;
 - `testar-dedos.py`: testa os cinco servos individualmente;
 - `requirements.txt`: lista as dependências Python.
+- `assets/alerta.jpg`: imagem exibida quando o gesto é bloqueado.
 
 ## Referências oficiais
 
