@@ -1,0 +1,17 @@
+# Python 3.14 é o alvo do projeto. Verifique wheels disponíveis antes de instalar:
+# python -m pip install -r requirements.txt
+#
+# MediaPipe pode não oferecer wheel oficial para Python 3.14; nesse caso use
+# Python 3.12/3.13. pyFirmata 1.1.0 também não declara suporte específico a 3.14.
+# Fontes oficiais:
+# https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker/python
+# https://docs.opencv.org/4.x/d6/d00/tutorial_py_root.html
+# https://pillow.readthedocs.io/en/stable/installation.html
+# https://protobuf.dev/getting_started/pythontutorial/
+# https://pyfirmata.readthedocs.io/en/latest/
+
+opencv-python>=4.10,<5
+mediapipe>=0.10.20,<0.11
+Pillow>=11,<13
+protobuf>=4.25,<6
+pyFirmata==1.1.0
